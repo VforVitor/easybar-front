@@ -14,16 +14,20 @@ const routes = [
     label: "Home",
   },
   {
-    href: "/comanda",
+    href: "/tab",
     label: "Comanda",
   },
   {
-    href: "/cardapio",
+    href: "/menu",
     label: "Cardápio",
   },
   {
-    href: "/pedidos",
+    href: "/order",
     label: "Pedidos",
+  },
+  {
+    href: "/management",
+    label: "Area do Funcionário",
   },
 ];
 
