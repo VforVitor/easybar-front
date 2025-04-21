@@ -19,7 +19,7 @@ To read more about using these font, please visit the Next.js documentation:
 **/
 import { Button } from "@/components/ui/button"
 
-export function main-menu() {
+export function MainMenu() {
   return (
     <div className="flex flex-col h-screen bg-white">
       <header className="flex items-center justify-center h-16 bg-white border-b">
