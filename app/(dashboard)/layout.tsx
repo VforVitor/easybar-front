@@ -13,8 +13,6 @@ type Props = {
 
 const DashboardLayout = ({ children }: Props) => {
   const { user, isLoaded } = useUser();
-  const router = useRouter();
-  const pathname = usePathname();
   const tableNumber = getTableNumber();
   const effectRan = useRef(false);
 

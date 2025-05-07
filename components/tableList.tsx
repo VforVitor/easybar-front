@@ -54,8 +54,6 @@ export default function TableList() {
   const [comandas, setComandas] = useState<Comanda[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMesa, setSelectedMesa] = useState<Mesa | null>(null);
-  const [showModal, setShowModal] = useState(false);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -126,97 +124,8 @@ export default function TableList() {
   }, []);
 
   const handleTableClick = (mesa: Mesa) => {
-    // Verificar se a mesa já está ocupada
-    const comandaAberta = comandas.find(
-      comanda => comanda.mesa._id === mesa._id && comanda.status === 1
-    );
-    
-    if (comandaAberta) {
-      // Se a mesa já tem uma comanda aberta, redirecionar para a comanda
-      router.push(`/tab/${comandaAberta._id}`);
-      return;
-    }
-    
-    // Se a mesa está livre, mostrar o modal para abrir uma nova comanda
-    setSelectedMesa(mesa);
-    setShowModal(true);
+    router.push(`/table/${mesa.numero}`);
   }
-
-  const openNewBill = async () => {
-    if (!selectedMesa) return;
-    
-    try {
-      // Obter o ID do usuário atual (você precisará implementar isso)
-      const userId = "USER_ID"; // Substitua pelo ID real do usuário
-      
-      // Criar uma nova comanda
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comandas`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          mesa: selectedMesa._id,
-          dono: userId,
-          status: 1, // Aberta
-          valorTotal: 0
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to create bill: ${response.status}`);
-      }
-      
-      const newBill = await response.json();
-      
-      // Atualizar o status da mesa para ocupada
-      await updateTableStatus(selectedMesa._id, 1);
-      
-      // Atualizar a lista de comandas
-      setComandas(prevComandas => [...prevComandas, newBill]);
-      
-      // Fechar o modal
-      setShowModal(false);
-      
-      // Redirecionar para a página da comanda
-      router.push(`/tab/${newBill._id}`);
-    } catch (err) {
-      console.error('Error creating new bill:', err);
-    }
-  };
-
-  const updateTableStatus = async (tableId: string, status: number) => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/mesas/${tableId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ status }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to update table status: ${response.status}`);
-      }
-      
-      // Atualizar a lista de mesas após atualizar o status
-      const updatedMesas = mesas.map(mesa => {
-        if (mesa._id === tableId) {
-          return {
-            ...mesa,
-            status: status
-          };
-        }
-        return mesa;
-      });
-      
-      setMesas(updatedMesas);
-    } catch (err) {
-      console.error('Error updating table status:', err);
-    }
-  };
 
   if (loading) {
     return (
@@ -286,35 +195,6 @@ export default function TableList() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
-      {/* Modal para abrir nova comanda */}
-      {showModal && selectedMesa && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-xl font-semibold text-[#5f0f40] mb-4">
-              Abrir Nova Comanda
-            </h3>
-            <p className="mb-4">
-              Você está abrindo uma nova comanda para a Mesa #{String(selectedMesa.numero).padStart(2, "0")}.
-              O status da mesa será atualizado para ocupada.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={openNewBill}
-                className="px-4 py-2 bg-[#5f0f40] text-white rounded-md hover:bg-[#4a0c32]"
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

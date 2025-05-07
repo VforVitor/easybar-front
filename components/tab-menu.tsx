@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/ca
 import { Button } from "@/components/ui/button"
 import { useUser } from "@clerk/nextjs"
 import { useState, useEffect } from "react"
+import { getTableNumber } from "@/lib/storage"
 
 interface Produto {
   _id: string;
@@ -45,6 +46,21 @@ export default function TabMenu() {
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [isClosing, setIsClosing] = useState(false);
+  const [isCreatingTab, setIsCreatingTab] = useState(false);
+  const tableNumber = getTableNumber();
+
+  useEffect(() => {
+    // Check if this tab is in the closing state
+    const checkClosingState = () => {
+      if (!comanda) return;
+      const closingTabs = JSON.parse(localStorage.getItem('closingTabs') || '[]');
+      if (closingTabs.includes(comanda._id)) {
+        setIsClosing(true);
+      }
+    };
+
+    checkClosingState();
+  }, [comanda]);
 
   const handleCloseTab = () => {
     if (!comanda) return;
@@ -54,6 +70,79 @@ export default function TabMenu() {
     // Add this tab to the list
     const updatedClosingTabs = Array.from(new Set([...existingClosingTabs, comanda._id]));
     localStorage.setItem('closingTabs', JSON.stringify(updatedClosingTabs));
+  };
+
+  const handleCreateNewTab = async () => {
+    if (!user) return;
+    setIsCreatingTab(true);
+    setError(null);
+
+    try {
+      // 1. Check if user exists in backend
+      const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/usuarios/${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      // 2. Check if user has open tab
+      const comandasResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comandas/dono/${user.id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!comandasResponse.ok) {
+        throw new Error('Erro ao verificar comandas');
+      }
+
+      const apiResponse: ApiResponse = await comandasResponse.json();
+      console.log(apiResponse);
+      const openComanda = apiResponse.data.find((comanda: Comanda) => comanda.status === 1);
+
+      if (openComanda) {
+        setComanda(openComanda);
+        return;
+      }
+
+      // 3. Create new open tab
+      const createResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comandas`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          dono: user.id,
+          status: 1,
+          mesa: tableNumber,
+          valorTotal: 0,
+          formaPagamento: null,
+          ativo: true,
+          produtos: []
+        }),
+      });
+
+      if (!createResponse.ok) {
+        throw new Error('Erro ao criar nova comanda');
+      }
+
+      const newComanda = await createResponse.json();
+      setComanda(newComanda);
+    } catch (err) {
+      console.error('Error creating new tab:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao criar nova comanda');
+    } finally {
+      setIsCreatingTab(false);
+    }
   };
 
   useEffect(() => {
@@ -97,8 +186,6 @@ export default function TabMenu() {
         const openComanda = apiResponse.data.find((comanda: Comanda) => comanda.status === 1);
         if (openComanda) {
           setComanda(openComanda);
-        } else {
-          setError('No open comanda found');
         }
       } catch (err) {
         console.error('Error fetching comanda:', err);
@@ -122,10 +209,27 @@ export default function TabMenu() {
   }
 
   if (!comanda) {
-    return <div className="flex items-center justify-center min-h-screen">No open comanda found</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Nenhuma comanda aberta</h2>
+          <p className="text-gray-600">Você não possui nenhuma comanda aberta no momento.</p>
+        </div>
+        <Button 
+          className="bg-[#5f0f40] text-white"
+          onClick={handleCreateNewTab}
+          disabled={isCreatingTab}
+        >
+          {isCreatingTab ? 'Criando...' : 'Criar Nova Comanda'}
+        </Button>
+        {error && (
+          <p className="text-red-500 text-sm mt-2">{error}</p>
+        )}
+      </div>
+    );
   }
 
-  const subtotal = comanda.produtos.reduce((acc, item) => acc + (item.valor * item.quantidade), 0);
+  const subtotal = comanda.produtos?.reduce((acc, item) => acc + (item.valor * item.quantidade), 0) || 0;
   const tip = subtotal * 0.1; // 10% tip
   const total = subtotal + tip;
 
@@ -145,7 +249,7 @@ export default function TabMenu() {
         </Card>
         </div>
         <div className="space-y-4">
-          {comanda.produtos.map((item) => (
+          {comanda.produtos?.map((item) => (
             <div key={item.produto._id} className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">{item.produto.nome}</p>
@@ -164,7 +268,11 @@ export default function TabMenu() {
                 </button>
               </div>
             </div>
-          ))}
+          )) || (
+            <div className="text-center text-gray-500 py-4">
+              Nenhum produto adicionado
+            </div>
+          )}
         </div>
         <div className="border-t my-4" />
         <div className="space-y-2">
@@ -220,7 +328,6 @@ function ArrowLeftIcon(props: any) {
   )
 }
 
-
 function ClipboardIcon(props: any) {
   return (
     <svg
@@ -240,7 +347,6 @@ function ClipboardIcon(props: any) {
     </svg>
   )
 }
-
 
 function EllipsisVerticalIcon(props: any) {
   return (
@@ -262,7 +368,6 @@ function EllipsisVerticalIcon(props: any) {
     </svg>
   )
 }
-
 
 function MartiniIcon(props: any) {
   return (

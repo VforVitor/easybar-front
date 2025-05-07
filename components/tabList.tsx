@@ -258,43 +258,97 @@ export default function TabList() {
             </div>
           </AccordionTrigger>
           <AccordionContent className="bg-white p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {comandas.map((comanda) => (
-                <div 
-                  key={comanda._id} 
-                  onClick={() => handleTabClick(comanda._id)}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors border border-gray-200"
-                >
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#5f0f40] font-medium">
-                        Mesa #{String(comanda.mesa).padStart(2, "0")}
-                      </span>
-                      {closingTabs.has(comanda._id) && (
-                        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                          Fechando
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col text-sm">
-                      <span className={getStatusColor(comanda.status)}>
-                        {getStatusText(comanda.status)}
-                      </span>
-                      <span className="text-gray-500">
-                        {comanda.dono.nome} • R$ {comanda.valorTotal.toFixed(2)}
-                      </span>
-                      {comanda.formaPagamento && (
-                        <span className="text-gray-500">
-                          {getFormaPagamentoText(comanda.formaPagamento)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-3xl font-bold text-[#5f0f40] opacity-50">
-                    {String(comanda.mesa).padStart(2, "0")}
-                  </div>
+            <div className="space-y-6">
+              {/* Open Tabs Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-[#5f0f40] mb-4">Comandas Abertas</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {comandas
+                    .filter(comanda => comanda.status === 1)
+                    .map((comanda) => (
+                      <div 
+                        key={comanda._id} 
+                        onClick={() => handleTabClick(comanda._id)}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors border border-gray-200"
+                      >
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[#5f0f40] font-medium">
+                              Mesa #{String(comanda.mesa).padStart(2, "0")}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              #{comanda._id.substring(0, 5)}
+                            </span>
+                            {closingTabs.has(comanda._id) && (
+                              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                Fechando
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-col text-sm">
+                            <span className={getStatusColor(comanda.status)}>
+                              {getStatusText(comanda.status)}
+                            </span>
+                            <span className="text-gray-500">
+                              {comanda.dono.nome} • R$ {comanda.valorTotal.toFixed(2)}
+                            </span>
+                            {comanda.formaPagamento && (
+                              <span className="text-gray-500">
+                                {getFormaPagamentoText(comanda.formaPagamento)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-3xl font-bold text-[#5f0f40] opacity-50">
+                          {String(comanda.mesa).padStart(2, "0")}
+                        </div>
+                      </div>
+                    ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Closed Tabs Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-500 mb-4">Comandas Fechadas</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {comandas
+                    .filter(comanda => comanda.status === 0)
+                    .map((comanda) => (
+                      <div 
+                        key={comanda._id} 
+                        onClick={() => handleTabClick(comanda._id)}
+                        className="flex items-center justify-between p-4 bg-gray-100 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors border border-gray-300 opacity-75"
+                      >
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-600 font-medium">
+                              Mesa #{String(comanda.mesa).padStart(2, "0")}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              #{comanda._id.substring(0, 5)}
+                            </span>
+                          </div>
+                          <div className="flex flex-col text-sm">
+                            <span className={getStatusColor(comanda.status)}>
+                              {getStatusText(comanda.status)}
+                            </span>
+                            <span className="text-gray-500">
+                              {comanda.dono.nome} • R$ {comanda.valorTotal.toFixed(2)}
+                            </span>
+                            {comanda.formaPagamento && (
+                              <span className="text-gray-500">
+                                {getFormaPagamentoText(comanda.formaPagamento)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-3xl font-bold text-gray-400">
+                          {String(comanda.mesa).padStart(2, "0")}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
             </div>
           </AccordionContent>
         </AccordionItem>
