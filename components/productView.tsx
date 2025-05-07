@@ -2,6 +2,7 @@
 import { useRouter, useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { useUser } from "@clerk/nextjs"
 
 interface Product {
   _id: string;
@@ -30,10 +31,13 @@ export default function ProductDetails() {
     const router = useRouter();
     const params = useParams();
     const { id } = params;
+    const { user, isLoaded } = useUser();
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [quantity, setQuantity] = useState(1);
+    const [isAddingToComanda, setIsAddingToComanda] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -71,6 +75,64 @@ export default function ProductDetails() {
 
     const handleDecrement = () => {
         setQuantity(prev => prev > 1 ? prev - 1 : 1);
+    };
+
+    const addToComanda = async () => {
+        if (!isLoaded || !user || !product) return;
+
+        setIsAddingToComanda(true);
+        setError(null);
+        setSuccessMessage(null);
+        
+        try {
+            // First check if user has an open comanda
+            const checkComandaResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comandas/dono/${user.id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            });
+
+            if (!checkComandaResponse.ok) {
+                throw new Error('Failed to check comanda status');
+            }
+
+            const comandaData = await checkComandaResponse.json();
+            const openComanda = comandaData.data.find((comanda: any) => comanda.status === 1);
+
+            if (!openComanda) {
+                throw new Error('Você precisa ter uma comanda aberta para adicionar itens');
+            }
+
+            // Add the product to the comanda using the correct endpoint
+            const addProductResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comandas/dono/${user.id}/items`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    produto: product._id,
+                    quantidade: quantity,
+                    valor: product.valor,
+                    observacoes: '',
+                    status: 'pendente'
+                }),
+            });
+
+            if (!addProductResponse.ok) {
+                throw new Error('Failed to add product to comanda');
+            }
+
+            setSuccessMessage('Item adicionado à comanda!');
+            setQuantity(1); // Reset quantity after successful addition
+        } catch (err) {
+            console.error('Error adding to comanda:', err);
+            setError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+            setIsAddingToComanda(false);
+        }
     };
 
     if (loading) {
@@ -127,9 +189,18 @@ export default function ProductDetails() {
             </div>
           </div>
         </main>
+        {successMessage && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg">
+            {successMessage}
+          </div>
+        )}
         <footer className="w-full px-4 mt-6">
-          <button className="w-full px-4 py-2 text-white bg-[#5f0f40] rounded">
-            Adicionar ao Pedido - R$ {(product.valor * quantity).toFixed(2)}
+          <button 
+            onClick={addToComanda}
+            disabled={isAddingToComanda}
+            className={`w-full px-4 py-2 text-white bg-[#5f0f40] rounded ${isAddingToComanda ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            Adicionar a comanda
           </button>
         </footer>
       </div>

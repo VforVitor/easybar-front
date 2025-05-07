@@ -69,6 +69,7 @@ export default function TabList() {
   const [comandas, setComandas] = useState<Comanda[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [closingTabs, setClosingTabs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchComandas = async () => {
@@ -96,6 +97,21 @@ export default function TabList() {
     };
 
     fetchComandas();
+  }, []);
+
+  // Add effect to listen for closing tabs changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const storedClosingTabs = JSON.parse(localStorage.getItem('closingTabs') || '[]');
+      setClosingTabs(new Set(storedClosingTabs));
+    };
+
+    // Initial load
+    handleStorageChange();
+
+    // Listen for changes
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleTabClick = (id: string) => {
@@ -181,7 +197,14 @@ export default function TabList() {
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="tabs" className="border rounded-lg overflow-hidden">
             <AccordionTrigger className="flex items-center justify-between w-full px-4 py-3 bg-[#5f0f40] text-white hover:bg-[#4a0c32] transition-colors">
-              <span className="text-lg font-semibold">Comandas</span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-semibold">Comandas</span>
+                {closingTabs.size > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    {closingTabs.size}
+                  </span>
+                )}
+              </div>
             </AccordionTrigger>
             <AccordionContent className="bg-white p-4">
               <div className="flex items-center justify-center p-4">
@@ -200,7 +223,14 @@ export default function TabList() {
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="tabs" className="border rounded-lg overflow-hidden">
             <AccordionTrigger className="flex items-center justify-between w-full px-4 py-3 bg-[#5f0f40] text-white hover:bg-[#4a0c32] transition-colors">
-              <span className="text-lg font-semibold">Comandas</span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-semibold">Comandas</span>
+                {closingTabs.size > 0 && (
+                  <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    {closingTabs.size}
+                  </span>
+                )}
+              </div>
             </AccordionTrigger>
             <AccordionContent className="bg-white p-4">
               <div className="flex items-center justify-center p-4">
@@ -218,7 +248,14 @@ export default function TabList() {
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="tabs" className="border rounded-lg overflow-hidden">
           <AccordionTrigger className="flex items-center justify-between w-full px-4 py-3 bg-[#5f0f40] text-white hover:bg-[#4a0c32] transition-colors">
-            <span className="text-lg font-semibold">Comandas</span>
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-semibold">Comandas</span>
+              {closingTabs.size > 0 && (
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  {closingTabs.size}
+                </span>
+              )}
+            </div>
           </AccordionTrigger>
           <AccordionContent className="bg-white p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -229,9 +266,16 @@ export default function TabList() {
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors border border-gray-200"
                 >
                   <div className="flex flex-col">
-                    <span className="text-[#5f0f40] font-medium">
-                      Mesa #{String(comanda.mesa.numero).padStart(2, "0")}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#5f0f40] font-medium">
+                        Mesa #{String(comanda.mesa).padStart(2, "0")}
+                      </span>
+                      {closingTabs.has(comanda._id) && (
+                        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                          Fechando
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-col text-sm">
                       <span className={getStatusColor(comanda.status)}>
                         {getStatusText(comanda.status)}
@@ -247,7 +291,7 @@ export default function TabList() {
                     </div>
                   </div>
                   <div className="text-3xl font-bold text-[#5f0f40] opacity-50">
-                    {String(comanda.mesa.numero).padStart(2, "0")}
+                    {String(comanda.mesa).padStart(2, "0")}
                   </div>
                 </div>
               ))}
