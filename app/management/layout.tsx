@@ -1,6 +1,7 @@
 import { Header } from "@/components/header";
 import TableList from "@/components/tableList";
 import TabList from "@/components/tabList";
+import UserInfo from "@/components/userInfo";
 
 type Props = {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ const ManagementLayout = ({ children }: Props) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <TableList />
           <TabList />
+          <UserInfo />
         </div>
       </main>
     </div>

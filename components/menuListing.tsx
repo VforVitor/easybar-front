@@ -39,7 +39,6 @@ export default function MenuList() {
                 }
                 
                 const data = await response.json();
-                console.log('Fetched products:', data); // Debug log
                 setProducts(data);
             } catch (err) {
                 console.error('Error fetching products:', err); // Debug log

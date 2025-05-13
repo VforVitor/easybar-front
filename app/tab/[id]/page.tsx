@@ -91,6 +91,21 @@ export default function TabDetails() {
     
     try {
       setIsClosing(true);
+      
+      // First, remove all orders for this comanda
+      const removeOrdersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pedidos/dono/${comanda.dono}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!removeOrdersResponse.ok) {
+        throw new Error(`Failed to remove orders: ${removeOrdersResponse.status}`);
+      }
+
+      // Then close the comanda
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comandas/${comanda.dono}`, {
         method: 'PUT',
         headers: {
@@ -147,7 +162,16 @@ export default function TabDetails() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold">Comanda #{comanda._id}</CardTitle>
+              <div className="flex items-center gap-3 mb-2">
+                <CardTitle className="text-2xl font-bold">Comanda #{comanda._id}</CardTitle>
+                <span className={`px-2 py-1 rounded-full text-sm ${
+                  comanda.status === 0 ? 'bg-green-100 text-green-800' :
+                  comanda.status === 1 ? 'bg-blue-100 text-blue-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {comanda.status === 0 ? 'Fechada' : comanda.status === 1 ? 'Aberta' : 'Cancelada'}
+                </span>
+              </div>
               <CardDescription>
                 Mesa {comanda.mesa} • {userName}
               </CardDescription>
@@ -169,11 +193,11 @@ export default function TabDetails() {
           <h2 className="text-xl font-semibold mb-4">Itens da Comanda</h2>
           <div className="space-y-4">
             {comanda.produtos.map((item) => (
-              <div key={item.produto._id} className="flex items-start justify-between border-b pb-4">
+              <div key={item.produto._id} className="flex items-start justify-between border-b pb-4 last:border-0 last:pb-0">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium">{item.produto.nome}</h3>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm bg-gray-100 px-2 py-0.5 rounded-full">
                       x{item.quantidade}
                     </span>
                   </div>
@@ -182,16 +206,6 @@ export default function TabDetails() {
                       Obs: {item.observacoes}
                     </p>
                   )}
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-sm px-2 py-1 rounded-full ${
-                      item.status === 'pendente' ? 'bg-yellow-100 text-yellow-800' :
-                      item.status === 'preparando' ? 'bg-blue-100 text-blue-800' :
-                      item.status === 'pronto' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                    </span>
-                  </div>
                 </div>
                 <div className="text-right">
                   <p className="font-medium">R$ {(item.valor * item.quantidade).toFixed(2)}</p>

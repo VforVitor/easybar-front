@@ -94,15 +94,52 @@ export default function ProductDetails() {
                 credentials: 'include',
             });
 
-            if (!checkComandaResponse.ok) {
-                throw new Error('Failed to check comanda status');
+            let openComanda;
+            
+            if (checkComandaResponse.ok) {
+                const comandaData = await checkComandaResponse.json();
+                openComanda = comandaData.data.find((comanda: any) => comanda.status === 1);
             }
 
-            const comandaData = await checkComandaResponse.json();
-            const openComanda = comandaData.data.find((comanda: any) => comanda.status === 1);
-
             if (!openComanda) {
-                throw new Error('Você precisa ter uma comanda aberta para adicionar itens');
+                // Get table number from localStorage
+                const tableNumber = localStorage.getItem('tableNumber');
+                
+                if (!tableNumber) {
+                    setError('Por favor, selecione uma mesa antes de adicionar itens à comanda');
+                    return;
+                }
+
+                // Validate table number is a positive integer
+                const tableNumberInt = parseInt(tableNumber);
+                if (isNaN(tableNumberInt) || tableNumberInt <= 0) {
+                    setError('Número da mesa inválido');
+                    return;
+                }
+                
+                // Create a new comanda if none exists
+                const createComandaResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/comandas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        dono: user.id,
+                        status: 1, // open
+                        valor: 0,
+                        mesa: tableNumberInt,
+                        data_criacao: new Date().toISOString()
+                    }),
+                });
+
+                if (!createComandaResponse.ok) {
+                    const errorData = await createComandaResponse.json().catch(() => ({}));
+                    throw new Error(errorData.message || 'Failed to create new comanda');
+                }
+
+                const newComanda = await createComandaResponse.json();
+                openComanda = newComanda.data;
             }
 
             // Add the product to the comanda using the correct endpoint
@@ -122,10 +159,40 @@ export default function ProductDetails() {
             });
 
             if (!addProductResponse.ok) {
-                throw new Error('Failed to add product to comanda');
+                const errorData = await addProductResponse.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Failed to add product to comanda');
             }
 
-            setSuccessMessage('Item adicionado à comanda!');
+            // Create a new order for the added product
+            const orderPayload = {
+                status: 0, // pendente
+                valor: product.valor * quantity,
+                quantidade: quantity,
+                produto: product._id,
+                comanda: openComanda._id,
+                dono: user.id,
+                observacoes: '',
+                data_criacao: new Date().toISOString()
+            };
+
+            const createOrderResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pedidos/cria`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(orderPayload),
+            });
+
+            if (!createOrderResponse.ok) {
+                const errorData = await createOrderResponse.json().catch(() => ({}));
+                console.error('Order creation failed:', errorData);
+                throw new Error(errorData.message || 'Failed to create order');
+            }
+
+            const orderResponse = await createOrderResponse.json();
+
+            setSuccessMessage('Item adicionado à comanda e pedido criado!');
             setQuantity(1); // Reset quantity after successful addition
         } catch (err) {
             console.error('Error adding to comanda:', err);

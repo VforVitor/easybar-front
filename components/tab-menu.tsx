@@ -101,12 +101,12 @@ export default function TabMenu() {
       });
 
       if (!comandasResponse.ok) {
-        throw new Error('Erro ao verificar comandas');
+        console.log('Failed to fetch comandas');
       }
 
       const apiResponse: ApiResponse = await comandasResponse.json();
-      console.log(apiResponse);
-      const openComanda = apiResponse.data.find((comanda: Comanda) => comanda.status === 1);
+      
+      const openComanda = apiResponse.data?.find((comanda: Comanda) => comanda.status === 1);
 
       if (openComanda) {
         setComanda(openComanda);
@@ -183,7 +183,7 @@ export default function TabMenu() {
         }
 
         // Find the open comanda (status === 1)
-        const openComanda = apiResponse.data.find((comanda: Comanda) => comanda.status === 1);
+        const openComanda = apiResponse.data?.find((comanda: Comanda) => comanda.status === 1);
         if (openComanda) {
           setComanda(openComanda);
         }
@@ -202,6 +202,24 @@ export default function TabMenu() {
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (error && error.includes('404')) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Nenhuma comanda aberta</h2>
+          <p className="text-gray-600">Você não possui nenhuma comanda aberta no momento.</p>
+        </div>
+        <Button 
+          className="bg-[#5f0f40] text-white"
+          onClick={handleCreateNewTab}
+          disabled={isCreatingTab}
+        >
+          {isCreatingTab ? 'Criando...' : 'Criar Nova Comanda'}
+        </Button>
+      </div>
+    );
   }
 
   if (error) {
