@@ -1,4 +1,7 @@
-export default function table() {
-    return <div>table content</div>;
-  }
-  
+'use client'
+
+import TableView from '@/components/tableView'
+
+export default function TablePage() {
+  return <TableView />
+} 
